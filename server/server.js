@@ -15,10 +15,38 @@ app.use(function (req, res, next) {
   next()
 })
 
-app.use(cors())
 app.use(logger('dev'))
+app.use(cors())
+
+app.options('*', cors())
 
 app.get('/', (req, res) => res.sendStatus(200))
+
+// MATCH
+
+const startMatch = (matchId, sessionId, challengerId) => {
+  const maxHP = 10
+
+  ongoingMatches[matchId] = {
+    players: {
+      [sessionId]: {
+        health: maxHP,
+        moves: []
+      },
+      [challengerId]: {
+        health: maxHP,
+        moves: []
+      }
+    },
+    matchId: matchId,
+    moveIndex: 0
+  }
+
+  userSessions[sessionId].status = 'in_match'
+  userSessions[sessionId].matchId = matchId
+  userSessions[challengerId].status = 'in_match'
+  userSessions[challengerId].matchId = matchId
+}
 
 // LOBBY
 
@@ -67,16 +95,18 @@ app.get('/list_users_in_lobby', (req, res) => {
   })
 })
 
-app.get('/challenge_user/:sessionId/:targetId', (req, res) => {
+app.get('/challenge_user/:userName/:sessionId/:targetId', (req, res) => {
+  const userName = req.params.userName
   const sessionId = req.params.sessionId
   const targetId = req.params.targetId
 
-  if (!invitations[sessionId]) {
-    invitations[sessionId] = []
+  if (!invitations[targetId]) {
+    invitations[targetId] = []
   }
 
-  invitations[sessionId].push({
-    challengerId: targetId
+  invitations[targetId].push({
+    challengerId: sessionId,
+    challengerName: userName
   })
 
   res.json({message: 'OK'})
@@ -91,27 +121,7 @@ app.get('/accept_invite/:sessionId/:challengerId', (req, res) => {
 
     const matchId = uuidv4()
 
-    const maxHP = 10
-
-    ongoingMatches[matchId] = {
-      players: {
-        [sessionId]: {
-          health: maxHP,
-          moves: []
-        },
-        [challengerId]: {
-          health: maxHP,
-          moves: []
-        }
-      },
-      matchId: matchId,
-      moveIndex: 0
-    }
-
-    userSessions[sessionId].status = 'in_match'
-    userSessions[sessionId].matchId = matchId
-    userSessions[challengerId].status = 'in_match'
-    userSessions[challengerId].matchId = matchId
+    startMatch(matchId, sessionId, challengerId)
 
     res.json({
       matchId: matchId
@@ -125,7 +135,7 @@ app.get('/accept_invite/:sessionId/:challengerId', (req, res) => {
 
 app.get('/heartbeat_lobby/:sessionId/:userName', (req, res) => {
   const sessionId = req.params.sessionId
-  const userName = req.params.sessionId
+  const userName = req.params.userName
 
   if (userSessions[sessionId]) {
     userSessions[sessionId].lastActive = (new Date()).toISOString()
@@ -135,11 +145,10 @@ app.get('/heartbeat_lobby/:sessionId/:userName', (req, res) => {
   }
 
   res.json({
-    invitations: invitations[sessionId] || []
+    invitations: invitations[sessionId] || [],
+    matchId: userSessions[sessionId].matchId
   })
 })
-
-// MATCH
 
 // APP
 

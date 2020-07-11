@@ -2,40 +2,64 @@
   <head>
     <title>ONE ZERO</title>
     <meta charset="UTF-8">
+    <script src="https://cdn.jsdelivr.net/npm/js-cookie@rc/dist/js.cookie.min.js"></script>
   </head>
 
   <body>
     <div id="lobby">
       <form id="form">
-        <input id="username" type="text" placeholder="username"/>
+        <input id="userName" type="text" placeholder="userName"/>
         <button type="button" onclick="register()">Register</button>
       </form>
-      <div id="usernameInfo">
+      <div id="userNameInfo">
         Username: 
         <p id="name"></p>
       </div>
       <div id="userList">
 
       </div>
-      <button id="refreshButton" type="button" onclick="refreshUsers()">Refresh</button>
+      <!-- <button id="refreshButton" type="button" onclick="refreshUsers()">Refresh</button> -->
     </div>
   </body>
 
   <script>
     // global vars
     const serverEndpoint = "http://localhost:3000"
+    const heartbeatTime = 3000
 
-    let username = null
+    let userName = null
     let sessionId = null
+    let matchId = null
+
+    //util
+
+    const hideForm = () => {
+      document.getElementById("form").style.display = 'none';
+      document.getElementById("userNameInfo").style.display = 'block';
+      document.getElementById("name").innerText = userName
+    }
 
     // server requests
 
-    const challengeUser = (targetUser, targetId) => {
-      console.log(targetUser, targetId)
-      window.fetch(serverEndpoint + "/challenge_user/" + sessionId + "/" +  targetId)
+    const challengeUser = (targetId) => {
+      window.fetch(serverEndpoint + "/challenge_user/"  + userName + "/" + sessionId + "/" +  targetId)
       .then(response => response.json())
       .then(data => {
+        if (!data.message){
+          alert("Error challenging user")
+        }
+      })
+    }
 
+    const acceptChallenge = (challengerId) => {
+      window.fetch(serverEndpoint + "/accept_invite/" + sessionId + "/" +  challengerId)
+      .then(response => response.json())
+      .then(data => {
+        if (data.matchId){
+          matchId = data.matchId
+          Cookies.set("matchId", matchId)
+          alert("Starting match " + data.matchId)
+        }
       })
     }
  
@@ -49,8 +73,8 @@
           let node = document.createElement("p")
           node.classList.add("user");
           node.innerHTML = user.name
-          node.setAttribute('data-id', sessionId);
-          if (username !== user.name){
+          node.setAttribute('data-id', user.sessionId);
+          if (userName !== user.name){
             node.onclick = clickUser
             rootEl.appendChild(node)
           }
@@ -59,37 +83,58 @@
     }
 
     const startSession = () => {
-      window.fetch(serverEndpoint + "/new_session/" + username)
+      window.fetch(serverEndpoint + "/new_session/" + userName)
       .then(response => response.json())
       .then(data => {
-        if (data.sessionId && data.sessionId !== null){
-          console.log("Session " + sessionId)
+        if (data.sessionId){
+          console.log("Session " + data.sessionId)
           sessionId = data.sessionId
-          document.getElementById("form").style.display = 'none';
-          document.getElementById("usernameInfo").style.display = 'block';
-          document.getElementById("name").innerText = username
+          Cookies.set("sessionId", sessionId)
+          hideForm()
           refreshUsers()
         }
       })
+    }
+
+    const heartBeat = () => {
+      if (sessionId && userName){
+        window.fetch(serverEndpoint + "/heartbeat_lobby/" + sessionId + "/" + userName)
+        .then(response => response.json())
+        .then(data => {
+          if (data.matchId) {
+            matchId = data.matchId
+            Cookies.set("matchId", matchId)
+            alert("Starting match " + data.matchId)
+          } else if (data.invitations && data.invitations.length > 0){
+            if(window.confirm("Accecpt challenge from " + data.invitations[0].challengerName + "?")){
+              acceptChallenge(data.invitations[0].challengerId)
+            }
+          }    
+        })
+      }
+      refreshUsers() 
+      setTimeout(heartBeat, heartbeatTime)   
     }
 
     // click handlers
 
     const register = () => {
       if (!sessionId){
-        username = document.getElementById("username").value
+        userName = document.getElementById("userName").value
+        Cookies.set("userName", userName)
         startSession()
       }
     }
 
     const clickUser = (e) => {
-      if (!username) {
-        alert("Please register a username before challenging another user to a match")
+      if (!userName) {
+        alert("Please register a userName before challenging another user to a match")
       } else {
         const targetUser = e.target.innerText
         const targetId = e.target.getAttribute('data-id')
         if (window.confirm("Challenge " + targetUser + "?")){
-          challengeUser(targetUser, targetId)
+          console.log(sessionId, targetUser, targetId)
+          challengeUser(targetId)
         }
       }
     }
@@ -97,7 +142,16 @@
     // init
 
     const initialize = () => {
+      const cookieData = Cookies.get()
+      console.log(cookieData)
+      userName = cookieData.userName || null
+      sessionId = cookieData.sessionId || null
+      matchId = cookieData.matchId || null
+      if (userName && sessionId){
+        hideForm()
+      }
       refreshUsers()
+      heartBeat()
     }
 
     initialize()
@@ -118,7 +172,7 @@
       padding-bottom: 10px;
     }
 
-    #usernameInfo{
+    #userNameInfo{
       height: 37px;
       display: none;
       padding-bottom: 10px;
