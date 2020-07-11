@@ -6,6 +6,10 @@ const { v4: uuidv4 } = require('uuid')
 
 const port = 3000
 
+const garbageCollectFreq = 30 * 1000
+const sessionTimeout = 30 * 1000
+let runGarbageCollector = false
+
 const userSessions = {}
 const invitations = {}
 const ongoingMatches = {}
@@ -22,7 +26,22 @@ app.options('*', cors())
 
 app.get('/', (req, res) => res.sendStatus(200))
 
-// MATCH
+// Utils
+
+const garbageCollector = () => {
+  console.log('Garbage Collect')
+  Object.values(userSessions).forEach((userSession) => {
+    // if userSession is more than 1 min old delete
+    if (new Date() - new Date(userSession.lastActive) > sessionTimeout) {
+      delete userSessions[userSession.sessionId]
+    }
+  })
+  if (Object.keys(userSessions).length < 1) {
+    runGarbageCollector = false
+  } else {
+    setTimeout(garbageCollector, garbageCollectFreq)
+  }
+}
 
 const startMatch = (matchId, sessionId, challengerId) => {
   const maxHP = 10
@@ -48,8 +67,6 @@ const startMatch = (matchId, sessionId, challengerId) => {
   userSessions[challengerId].matchId = matchId
 }
 
-// LOBBY
-
 const createSession = (id, userName) => {
   userSessions[id] = {
     sessionId: id,
@@ -58,7 +75,14 @@ const createSession = (id, userName) => {
     matchId: null,
     lastActive: (new Date()).toISOString()
   }
+
+  if (!runGarbageCollector) {
+    runGarbageCollector = true
+    garbageCollector()
+  }
 }
+
+// LOBBY
 
 app.get('/new_session/:userName', (req, res) => {
   const newUserId = uuidv4()
@@ -152,20 +176,5 @@ app.get('/heartbeat_lobby/:sessionId/:userName', (req, res) => {
 })
 
 // APP
-
-const garbageCollectTime = 30 * 1000
-
-const garbageCollector = () => {
-  console.log('Garbage Collect')
-  Object.values(userSessions).forEach((userSession) => {
-    // if userSession is more than 1 min old delete
-    if (new Date() - new Date(userSession.lastActive) > 30 * 1000) {
-      delete userSessions[userSession.sessionId]
-    }
-  })
-  setTimeout(garbageCollector, garbageCollectTime)
-}
-
-garbageCollector()
 
 app.listen(port, () => console.log(`App listening at http://localhost:${port}`))

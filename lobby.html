@@ -34,8 +34,8 @@
     //util
 
     const hideForm = () => {
-      document.getElementById("form").style.display = 'none';
-      document.getElementById("userNameInfo").style.display = 'block';
+      document.getElementById("form").style.display = 'none'
+      document.getElementById("userNameInfo").style.display = 'block'
       document.getElementById("name").innerText = userName
     }
 
@@ -71,12 +71,16 @@
         rootEl.innerHTML = ""
         data.users.forEach(user => {
           let node = document.createElement("p")
-          node.classList.add("user");
+          node.classList.add("user")
           node.innerHTML = user.name
-          node.setAttribute('data-id', user.sessionId);
+          node.setAttribute('data-id', user.sessionId)
           if (userName !== user.name){
             node.onclick = clickUser
             rootEl.appendChild(node)
+          } else {
+            node.style.color = "blue"
+            node.style.cursor = "default"
+            rootEl.insertBefore(node, rootEl.firstChild)
           }
         })
       })
