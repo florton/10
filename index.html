@@ -1,0 +1,255 @@
+<html>
+  <head>
+    <title>ONE ZERO</title>
+    <meta charset="UTF-8">
+  </head>
+
+  <body>
+    <div id="turnMarker">Attacking</div>
+    <div id="message"></div>
+    <div class="player" id="player1">
+      <div class="lastTurn" id="player1-lt"></div>
+      <div class="buttons">
+        <button class="button" id="button1" onclick="makeMove(1)">
+          1
+        </button>
+        <button class="button" id="button0" onclick="makeMove(0)">
+          0
+        </button>
+        <button class="button" id="replay" onclick="replay()">
+          replay
+        </button>
+      </div>
+      <div class="health" id="p1health"></div>
+    </div>
+    <div class="player" id="player2">
+      <div class="lastTurn" id="player2-lt"></div>
+      <div class="health" id="p2health"></div>
+    </div>
+  </body>
+
+  <script>
+    const maxHp = 10;
+
+    let p1hp = maxHp;
+    let p2hp = maxHp;
+    let playerIsAttacking = true;
+
+    const displayOrbs = (el, hp, fullHp) => {
+      el.innerHTML = ""
+      for(const orbIndex of Array(fullHp).keys()){
+        const orb = document.createElement("div")
+        orb.classList.add("healthOrb")
+        if (hp > orbIndex){
+          orb.classList.add("full")
+        }
+        el.appendChild(orb)
+      }
+    }
+
+    const showMessage = (message) => {
+      document.getElementById("message").innerText = message
+    }
+
+    const loseHealth = (id, hpLoss) => {
+      if (id === "p1"){
+        p1hp -= hpLoss
+        showMessage("You lost " + hpLoss + " hp!")
+      } else {
+        p2hp -= hpLoss
+        showMessage("Enemy lost " + hpLoss + " hp!")
+      }
+      updateHP()
+    }
+
+    const calculateOutcome = (attackerMove, defenderMove, defenderID) => {
+      if (defenderMove === attackerMove){
+        switchSides()
+        showMessage("Switch!")
+      } else {
+        if (attackerMove === 1){
+          loseHealth(defenderID, 2)
+        } else {
+          loseHealth(defenderID, 1)
+        }
+      }
+      if (p1hp <= 0){
+        endGame(false)
+      }
+      if (p2hp <= 0){
+        endGame(true)
+      }
+    }
+
+    const showLastTurn = (playerMove, AIMove) => {
+      document.getElementById("player1-lt").innerText = playerMove
+      document.getElementById("player2-lt").innerText = AIMove
+    }
+
+    const generateAIMove = () => {
+      let moveIsOne = null
+      if(playerIsAttacking){
+        moveIsOne = Math.random() >= 0.4
+      } else {
+        moveIsOne = Math.random() >= 0.6
+      }
+      return moveIsOne ? 1 : 0
+    }
+
+    const makeMove = (playerMove) => {
+      const AIMove = generateAIMove()
+      showLastTurn(playerMove, AIMove)
+      if (playerIsAttacking){
+        calculateOutcome(playerMove, AIMove, "p2")
+      } else {
+        calculateOutcome(AIMove, playerMove, "p1")
+      }
+    }
+
+    const switchSides = () => {
+      const el = document.getElementById("turnMarker")
+      playerIsAttacking = !playerIsAttacking
+      if (playerIsAttacking){
+        el.innerText = "Attacking"
+      } else {
+        el.innerText = "Defending"
+      }
+    }
+
+    const updateHP = () => {
+      displayOrbs(document.getElementById("p1health"), p1hp, maxHp)
+      displayOrbs(document.getElementById("p2health"), p2hp, maxHp)
+    }
+
+    const endGame = (playerWon) => {
+      if (playerWon){
+        showMessage("You won!")
+      } else {
+        showMessage("You lost :'(")
+      }
+      document.getElementById("button1").style.display = "none"
+      document.getElementById("button0").style.display = "none"
+      setTimeout(() => {
+        document.getElementById("replay").style.display = "inline-block"
+      }, 1000)
+    }
+
+    const start = () => {
+      showMessage("")
+      p1hp = maxHp;
+      p2hp = maxHp;
+      if (!playerIsAttacking){
+        switchSides()
+      }
+      showLastTurn("", "")
+      updateHP()
+    }
+
+    const replay = () => {
+      document.getElementById("button1").style.display = "inline-block"
+      document.getElementById("button0").style.display = "inline-block"
+      document.getElementById("replay").style.display = "none"
+      start()
+    }
+
+    start()
+
+  </script>
+
+  <style>
+    #turnMarker{
+      position: absolute;
+      top: 60%;
+      left: 25%;
+      transform: translateX(-50%);
+      color: white;
+      font-size: 35px;
+      font-family: Arial, Helvetica, sans-serif;
+      user-select: none;
+      z-index: 99;
+    }
+
+    #message{
+      position: absolute;
+      top: 10%;
+      left: 25%;
+      transform: translateX(-50%);
+      color: white;
+      font-size: 50px;
+      font-family: Arial, Helvetica, sans-serif;
+      user-select: none;
+      z-index: 99;
+    }
+
+    .lastTurn{
+      position: absolute;
+      top: 30%;
+      left: 50%;
+      transform: translateX(-50%);
+      color: white;
+      font-size: 80px;
+      font-family: Arial, Helvetica, sans-serif;
+      user-select: none;
+      z-index: 99;
+    }
+
+    .player{
+      position: absolute;
+      width: 50%;
+      height: 100%
+    }
+
+    #player1{
+      top: 0;
+      left: 0;
+      background: blue;
+    }
+
+    #player2{
+      top:0;
+      right: 0;
+      background: red;
+    }
+
+    .buttons{
+      position: absolute;
+      left: 50%;
+      transform: translateX(-50%);
+      top: 50%
+    }
+
+    .button{
+      height: 60px;
+      width: 100px;
+      font-size: 20px;
+    }
+
+    #replay{
+      display: none;
+    }
+
+    .health{
+      position: absolute;
+      left: 50%;
+      transform: translateX(-50%);
+      bottom: 10%;
+      width: 80%;
+      height: 20%;
+      /* background: grey; */
+    }
+
+    .healthOrb {
+      height: 50px;
+      width: 50px;
+      margin: 11px;
+      background: grey;
+      border-radius: 50%;
+      display: inline-block;
+    }
+
+    .full{
+      background: greenyellow;
+    }
+    
+  </style>
+</html>

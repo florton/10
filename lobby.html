@@ -1,0 +1,153 @@
+<html>
+  <head>
+    <title>ONE ZERO</title>
+    <meta charset="UTF-8">
+  </head>
+
+  <body>
+    <div id="lobby">
+      <form id="form">
+        <input id="username" type="text" placeholder="username"/>
+        <button type="button" onclick="register()">Register</button>
+      </form>
+      <div id="usernameInfo">
+        Username: 
+        <p id="name"></p>
+      </div>
+      <div id="userList">
+
+      </div>
+      <button id="refreshButton" type="button" onclick="refreshUsers()">Refresh</button>
+    </div>
+  </body>
+
+  <script>
+    // global vars
+    const serverEndpoint = "http://localhost:3000"
+
+    let username = null
+    let sessionId = null
+
+    // server requests
+
+    const challengeUser = (targetUser, targetId) => {
+      console.log(targetUser, targetId)
+      window.fetch(serverEndpoint + "/challenge_user/" + sessionId + "/" +  targetId)
+      .then(response => response.json())
+      .then(data => {
+
+      })
+    }
+ 
+    const refreshUsers = () => {
+      window.fetch(serverEndpoint + "/list_users_in_lobby/")
+      .then(response => response.json())
+      .then(data => {
+        const rootEl = document.getElementById("userList")
+        rootEl.innerHTML = ""
+        data.users.forEach(user => {
+          let node = document.createElement("p")
+          node.classList.add("user");
+          node.innerHTML = user.name
+          node.setAttribute('data-id', sessionId);
+          if (username !== user.name){
+            node.onclick = clickUser
+            rootEl.appendChild(node)
+          }
+        })
+      })
+    }
+
+    const startSession = () => {
+      window.fetch(serverEndpoint + "/new_session/" + username)
+      .then(response => response.json())
+      .then(data => {
+        if (data.sessionId && data.sessionId !== null){
+          console.log("Session " + sessionId)
+          sessionId = data.sessionId
+          document.getElementById("form").style.display = 'none';
+          document.getElementById("usernameInfo").style.display = 'block';
+          document.getElementById("name").innerText = username
+          refreshUsers()
+        }
+      })
+    }
+
+    // click handlers
+
+    const register = () => {
+      if (!sessionId){
+        username = document.getElementById("username").value
+        startSession()
+      }
+    }
+
+    const clickUser = (e) => {
+      if (!username) {
+        alert("Please register a username before challenging another user to a match")
+      } else {
+        const targetUser = e.target.innerText
+        const targetId = e.target.getAttribute('data-id')
+        if (window.confirm("Challenge " + targetUser + "?")){
+          challengeUser(targetUser, targetId)
+        }
+      }
+    }
+
+    // init
+
+    const initialize = () => {
+      refreshUsers()
+    }
+
+    initialize()
+
+
+  </script>
+
+  <style>
+    #lobby{
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+    }
+
+    #form{
+      padding-left: 40px;
+      padding-bottom: 10px;
+    }
+
+    #usernameInfo{
+      height: 37px;
+      display: none;
+      padding-bottom: 10px;
+    }
+
+    #name{
+      display: inline-block;
+      font-weight: bold;
+    }
+
+    #userList{
+      width: 300px;
+      height: 500px;
+      border: solid 1px black;
+      overflow-y: scroll;
+    }
+
+    .user{
+      padding: 5px;
+      cursor: pointer;
+      color: green;
+      font-weight: bold;
+    }
+
+    #refreshButton{
+      margin-top: 10px;
+      margin-left: 115px;
+    }
+
+
+  </style>
+</html>
