@@ -81,11 +81,11 @@ app.get('/new_session/:userName', (req, res) => {
 app.get('/list_users_in_lobby', (req, res) => {
   const result = []
 
-  Object.values(userSessions).forEach((user) => {
-    if (user.status === 'lobby') {
+  Object.values(userSessions).forEach((userSession) => {
+    if (userSession.status === 'lobby') {
       result.push({
-        sessionId: user.sessionId,
-        name: user.name
+        sessionId: userSession.sessionId,
+        name: userSession.name
       })
     }
   })
@@ -106,7 +106,8 @@ app.get('/challenge_user/:userName/:sessionId/:targetId', (req, res) => {
 
   invitations[targetId].push({
     challengerId: sessionId,
-    challengerName: userName
+    challengerName: userName,
+    timeSent: (new Date()).toISOString()
   })
 
   res.json({message: 'OK'})
@@ -151,5 +152,20 @@ app.get('/heartbeat_lobby/:sessionId/:userName', (req, res) => {
 })
 
 // APP
+
+const garbageCollectTime = 30 * 1000
+
+const garbageCollector = () => {
+  console.log('Garbage Collect')
+  Object.values(userSessions).forEach((userSession) => {
+    // if userSession is more than 1 min old delete
+    if (new Date() - new Date(userSession.lastActive) > 30 * 1000) {
+      delete userSessions[userSession.sessionId]
+    }
+  })
+  setTimeout(garbageCollector, garbageCollectTime)
+}
+
+garbageCollector()
 
 app.listen(port, () => console.log(`App listening at http://localhost:${port}`))
