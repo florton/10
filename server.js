@@ -7,9 +7,9 @@ const { cloneDeep } = require('lodash')
 
 // Globals
 
-const garbageCollectFreq = 5 * 60 * 1000 // 5 minutes
-const sessionTimeout = 10 * 60 * 1000 // 10 minutes
-const matchTimeout = 10 * 60 * 1000 // 10 minutes
+const garbageCollectFreq = 5 * 60 * 1000 // 2 minutes
+const sessionTimeout = 5 * 60 * 1000 // 5 minutes
+const matchTimeout = 5 * 60 * 1000 // 5 minutes
 let runGarbageCollector = false
 
 // RAM database lol
