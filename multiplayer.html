@@ -112,6 +112,7 @@
         const challengerNewState = newMatchState.players[challengerId]
 
         if (isNextTurn){
+          showLastTurn(playerNewState.moves[playerNewState.moves.length -1], true)
           showLastTurn(challengerNewState.moves[challengerNewState.moves.length -1], false)
         }
         setAttackingMessage(playerNewState.isAttacking, sidesSwitched)
