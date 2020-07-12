@@ -7,8 +7,6 @@ const { cloneDeep } = require('lodash')
 
 // Globals
 
-const port = 3000
-
 const garbageCollectFreq = 5 * 60 * 1000 // 5 minutes
 const sessionTimeout = 10 * 60 * 1000 // 10 minutes
 const matchTimeout = 10 * 60 * 1000 // 10 minutes
@@ -291,4 +289,6 @@ app.get('/heartbeat_match/:sessionId/:matchId', (req, res) => {
 
 // APP
 
-app.listen(port, () => console.log(`App listening at http://localhost:${port}`))
+const port = process.env.PORT || 3000
+
+app.listen(port, () => console.log(`App listening on ${port}`))
