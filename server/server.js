@@ -9,8 +9,9 @@ const { cloneDeep } = require('lodash')
 
 const port = 3000
 
-const garbageCollectFreq = 30 * 1000
-const sessionTimeout = 30 * 1000
+const garbageCollectFreq = 5 * 60 * 1000 // 5 minutes
+const sessionTimeout = 10 * 60 * 1000 // 10 minutes
+const matchTimeout = 10 * 60 * 1000 // 10 minutes
 let runGarbageCollector = false
 
 // RAM database lol
@@ -38,12 +39,18 @@ app.get('/', (req, res) => res.sendStatus(200))
 const garbageCollector = () => {
   console.log('Garbage Collect')
   Object.values(userSessions).forEach((userSession) => {
-    // if userSession is more than 1 min old delete
+    // if userSession is older than sessionTimeout delete user session and invites
     if (new Date() - new Date(userSession.lastActive) > sessionTimeout) {
+      delete invitations[userSession.sessionId]
       delete userSessions[userSession.sessionId]
     }
   })
-  // TODO: garbage collect invites and matches
+  Object.values(ongoingMatches).forEach((match) => {
+    // if match is older than matchTimeout delete
+    if (new Date() - new Date(match.lastActive) > matchTimeout) {
+      delete ongoingMatches[match.matchId]
+    }
+  })
 
   if (Object.keys(userSessions).length < 1) {
     runGarbageCollector = false
@@ -77,6 +84,7 @@ const startMatch = (matchId, sessionId, challengerId) => {
     matchId: matchId,
     moveIndex: 0,
     winner: null,
+    lastActive: (new Date()).toISOString(),
     players: {
       [sessionId]: {
         id: sessionId,
@@ -147,10 +155,14 @@ app.get('/new_session/:userName', (req, res) => {
 })
 
 app.get('/list_users_in_lobby', (req, res) => {
+  const userInactiveTime = 30 * 1000 // 30 seconds
   const result = []
 
   Object.values(userSessions).forEach((userSession) => {
-    if (userSession.status === 'lobby') {
+    if (
+      userSession.status === 'lobby' &&
+      new Date() - new Date(userSession.lastActive) <= userInactiveTime
+    ) {
       result.push({
         sessionId: userSession.sessionId,
         name: userSession.name
@@ -254,6 +266,7 @@ app.get('/heartbeat_match/:sessionId/:matchId', (req, res) => {
 
   if (userSessions[sessionId]) {
     userSessions[sessionId].lastActive = (new Date()).toISOString()
+    ongoingMatches[matchId].lastActive = (new Date()).toISOString()
     userSessions[sessionId].status = 'in-match'
 
     if (ongoingMatches[matchId].winner) {
