@@ -270,7 +270,8 @@ app.get('/heartbeat_match/:sessionId/:matchId', (req, res) => {
     if (ongoingMatches[matchId].winner) {
       userSessions[sessionId].matchId = null
       res.json({
-        matchId: null
+        matchId: null,
+        matchState: ongoingMatches[matchId]
       })
     } else {
       res.json({
@@ -281,6 +282,7 @@ app.get('/heartbeat_match/:sessionId/:matchId', (req, res) => {
   } else {
     // TODO: handle user getting garbage collected while in match
     // createSession(sessionId, userName, 'in-match', matchId)
+    console.log('Error user in match with no session')
     res.json({
       matchId: null
     })

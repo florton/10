@@ -34,7 +34,8 @@
 
   <script>
     // global vars
-    const serverEndpoint = " https://blooming-beyond-51878.herokuapp.com"
+    // const serverEndpoint = " https://blooming-beyond-51878.herokuapp.com"
+    const serverEndpoint = " http://localhost:3000"
     const heartbeatTime = 1000
 
     const maxHp = 10
@@ -89,12 +90,16 @@
       displayOrbs(document.getElementById("p2health"), p2hp, maxHp)
     }
 
-    const endGame = (playerWon) => {
-      if (playerWon){
-        showMessage("You won!")
-      } else {
-        showMessage("You lost :'(")
+    const endGame = (winner) => {
+      console.log({winner, sessionId, challengerId})
+      if (winner !== null){
+        if(winner === sessionId){
+          showMessage("You won!")
+        } else {
+          showMessage("You lost :'(")
+        }
       }
+
       document.getElementById("button1").style.display = "none"
       document.getElementById("button0").style.display = "none"
       setTimeout(() => {
@@ -116,7 +121,6 @@
           showLastTurn(challengerNewState.moves[challengerNewState.moves.length -1], false)
         }
         setAttackingMessage(playerNewState.isAttacking, sidesSwitched)
-
         updateHPOrbs(playerNewState.health, challengerNewState.health)
 
         if (matchState){
@@ -129,10 +133,8 @@
           }
         }
 
-        if (newMatchState.winner === sessionId){
-          endGame(true)
-        }else if (newMatchState.winner === challengerId){
-          endGame(false)
+        if (newMatchState.winner !== null){
+          endGame(newMatchState.winner)
         }
       } 
       
@@ -164,10 +166,10 @@
         window.fetch(serverEndpoint + "/heartbeat_match/" + sessionId  + "/" + matchId)
         .then(response => response.json())
         .then(data => {
-          if (data.matchId && data.matchState) {
+          if (data.matchState) {
             processNewMatchState(data.matchState)
-          } else {
-            endGame()
+          } else{
+            endGame(null)
           }
         })
       } else {
