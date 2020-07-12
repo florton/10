@@ -8,8 +8,8 @@
   <body>
     <div id="lobby">
       <form id="form">
-        <input id="userName" type="text" placeholder="userName"/>
-        <button type="button" onclick="register()">Register</button>
+        <input id="userName" type="text" placeholder="userName" onkeypress="return event.keyCode!=13"/>
+        <button type="button" onclick="register()" >Register</button>
       </form>
       <div id="userNameInfo">
         Username: 
@@ -31,6 +31,8 @@
     let sessionId = null
     let matchId = null
 
+    const processedInvitiations = []
+
     //util
 
     const hideForm = () => {
@@ -47,6 +49,8 @@
       .then(data => {
         if (!data.message){
           alert("Error challenging user")
+        }else {
+          Cookies.set("challengerId", targetId)
         }
       })
     }
@@ -58,7 +62,8 @@
         if (data.matchId){
           matchId = data.matchId
           Cookies.set("matchId", matchId)
-          alert("Starting match " + data.matchId)
+          Cookies.set("challengerId", challengerId)
+          window.location = "multiplayer.html"
         }
       })
     }
@@ -105,13 +110,18 @@
         window.fetch(serverEndpoint + "/heartbeat_lobby/" + sessionId + "/" + userName)
         .then(response => response.json())
         .then(data => {
+          console.log(data)
           if (data.matchId) {
             matchId = data.matchId
             Cookies.set("matchId", matchId)
-            alert("Starting match " + data.matchId)
+            window.location = "multiplayer.html"
           } else if (data.invitations && data.invitations.length > 0){
-            if(window.confirm("Accecpt challenge from " + data.invitations[0].challengerName + "?")){
-              acceptChallenge(data.invitations[0].challengerId)
+            const unsansweredInvite = data.invitations.filter((invite) => !processedInvitiations.includes(invite.id))[0]
+            if (unsansweredInvite){
+              if(window.confirm("Accecpt challenge from " + unsansweredInvite.challengerName + "?")){
+              acceptChallenge(unsansweredInvite.challengerId)
+            } 
+            processedInvitiations.push(unsansweredInvite.id)
             }
           }    
         })

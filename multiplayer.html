@@ -1,0 +1,303 @@
+<html>
+  <head>
+    <title>ONE ZERO</title>
+    <meta charset="UTF-8">
+    <script src="https://cdn.jsdelivr.net/npm/js-cookie@rc/dist/js.cookie.min.js"></script>
+  </head>
+
+  <body>
+    <div id="turnMarker">Attacking</div>
+    <div id="message"></div>
+    <div class="player" id="player1">
+      <div class="lastTurn" id="player1-lt"></div>
+      <div class="buttons">
+        <button class="button" id="button1">
+          1
+        </button>
+        <button class="button" id="button0">
+          0
+        </button>
+        <button class="button" id="back">
+          Return to lobby
+        </button>
+        <!-- <button class="button" id="replay">
+          replay
+        </button> -->
+      </div>
+      <div class="health" id="p1health"></div>
+    </div>
+    <div class="player" id="player2">
+      <div class="lastTurn" id="player2-lt"></div>
+      <div class="health" id="p2health"></div>
+    </div>
+  </body>
+
+  <script>
+    // global vars
+    const serverEndpoint = "http://localhost:3000"
+    const heartbeatTime = 1000
+
+    const maxHp = 10
+
+    let userName = null
+    let sessionId = null
+    let matchId = null
+    let challengerId = null
+    let matchState = {}
+    
+    // Visual
+
+    const displayOrbs = (el, hp, fullHp) => {
+      el.innerHTML = ""
+      for(const orbIndex of Array(fullHp).keys()){
+        const orb = document.createElement("div")
+        orb.classList.add("healthOrb")
+        if (hp > orbIndex){
+          orb.classList.add("full")
+        }
+        el.appendChild(orb)
+      }
+    }
+
+    const showMessage = (message) => {
+      document.getElementById("message").innerText = message
+    }
+
+    const setAttackingMessage = (isAttacking, didSwitch = false) => {
+      const el = document.getElementById("turnMarker")
+      // isAttacking = !isAttacking
+      if (isAttacking){
+        el.innerText = "Attacking"
+      } else {
+        el.innerText = "Defending"
+      }
+      if (didSwitch){
+        showMessage("Switch!")
+      }
+    }
+
+    const showLastTurn = (move, isPlayerMove) => {
+      if (isPlayerMove){
+        document.getElementById("player1-lt").innerText = move
+      } else {
+        document.getElementById("player2-lt").innerText = move
+      }
+    }
+
+    const updateHPOrbs = (p1hp, p2hp) => {
+      displayOrbs(document.getElementById("p1health"), p1hp, maxHp)
+      displayOrbs(document.getElementById("p2health"), p2hp, maxHp)
+    }
+
+    const endGame = (playerWon) => {
+      if (playerWon){
+        showMessage("You won!")
+      } else {
+        showMessage("You lost :'(")
+      }
+      document.getElementById("button1").style.display = "none"
+      document.getElementById("button0").style.display = "none"
+      setTimeout(() => {
+        document.getElementById("back").style.display = "inline-block"
+      }, 1000)
+    }
+
+    const processNewMatchState = (newMatchState) => {
+      const isNextTurn = matchState && newMatchState.moveIndex > matchState.moveIndex
+      const sidesSwitched  = matchState && 
+        newMatchState.players[sessionId].isAttacking !== matchState.players[sessionId].isAttacking
+
+      if (!matchState || isNextTurn){
+        const playerNewState = newMatchState.players[sessionId]
+        const challengerNewState = newMatchState.players[challengerId]
+
+        if (isNextTurn){
+          showLastTurn(challengerNewState.moves[challengerNewState.moves.length -1], false)
+        }
+        setAttackingMessage(playerNewState.isAttacking, sidesSwitched)
+
+        updateHPOrbs(playerNewState.health, challengerNewState.health)
+
+        if (matchState){
+          const playerPrevState = matchState.players[sessionId]
+          const challengerPrevState = matchState.players[challengerId]
+          if (playerNewState.health !== playerPrevState.health ){
+            showMessage("You lost " + (playerNewState.health - playerPrevState.health) + " hp!")
+          } else if (challengerNewState.health !== challengerPrevState.health){
+            showMessage("Enemy lost " + (challengerNewState.health - challengerPrevState.health)  + " hp!")
+          }
+        }
+
+        if (newMatchState.winner === sessionId){
+          endGame(true)
+        }else if (newMatchState.winner === challengerId){
+          endGame(false)
+        }
+      } 
+      
+      matchState = newMatchState
+    }
+
+    const afterMove = (move) => {
+      showLastTurn(move, true)
+      showLastTurn("", false)
+      showMessage("")
+    }
+
+    const goBack = () => {
+      window.location = "lobby.html"
+    }
+    
+    // metwork methods
+
+    const makeMove = (move) => {
+      window.fetch(serverEndpoint + "/make_move/" + sessionId + "/" + matchId + "/" + move)
+        .then(response => response.json())
+        .then(data => {
+          afterMove(move)
+        })
+    }
+ 
+    const heartBeat = () => {
+      if (sessionId && matchId){
+        window.fetch(serverEndpoint + "/heartbeat_match/" + sessionId  + "/" + matchId)
+        .then(response => response.json())
+        .then(data => {
+          if (data.matchId && data.matchState) {
+            processNewMatchState(data.matchState)
+          } else {
+            endGame()
+          }
+        })
+      } else {
+        console.error({sessionId, userName, matchId})
+      }
+      setTimeout(heartBeat, heartbeatTime)   
+    }
+
+    const initialize = () => {
+      //load from cookies
+      const cookieData = Cookies.get()
+      userName = cookieData.userName || null
+      sessionId = cookieData.sessionId || null
+      matchId = cookieData.matchId || null
+      matchState = cookieData.matchState || null
+      challengerId = cookieData.challengerId || null
+
+      document.getElementById("button1").addEventListener ("click", () => makeMove(1))
+      document.getElementById("button0").addEventListener ("click", () => makeMove(0))
+      document.getElementById("back").addEventListener ("click", () => goBack())
+
+      if (!sessionId){
+        console.error("No active session")
+      } else {
+        heartBeat()
+      }
+    }
+
+    initialize()
+
+  </script>
+
+  <style>
+    #turnMarker{
+      position: absolute;
+      top: 60%;
+      left: 25%;
+      transform: translateX(-50%);
+      color: white;
+      font-size: 35px;
+      font-family: Arial, Helvetica, sans-serif;
+      user-select: none;
+      z-index: 99;
+    }
+
+    #message{
+      position: absolute;
+      top: 10%;
+      left: 25%;
+      transform: translateX(-50%);
+      color: white;
+      font-size: 50px;
+      font-family: Arial, Helvetica, sans-serif;
+      user-select: none;
+      z-index: 99;
+    }
+
+    .lastTurn{
+      position: absolute;
+      top: 30%;
+      left: 50%;
+      transform: translateX(-50%);
+      color: white;
+      font-size: 80px;
+      font-family: Arial, Helvetica, sans-serif;
+      user-select: none;
+      z-index: 99;
+    }
+
+    .player{
+      position: absolute;
+      width: 50%;
+      height: 100%
+    }
+
+    #player1{
+      top: 0;
+      left: 0;
+      background: blue;
+    }
+
+    #player2{
+      top:0;
+      right: 0;
+      background: red;
+    }
+
+    .buttons{
+      position: absolute;
+      left: 50%;
+      transform: translateX(-50%);
+      top: 50%
+    }
+
+    .button{
+      height: 60px;
+      width: 100px;
+      font-size: 20px;
+    }
+
+    /* #replay{
+      display: none;
+    } */
+
+    #back{
+      display: none;
+      width: 173px;
+    }
+
+    .health{
+      position: absolute;
+      left: 50%;
+      transform: translateX(-50%);
+      bottom: 10%;
+      width: 80%;
+      height: 20%;
+      /* background: grey; */
+    }
+
+    .healthOrb {
+      height: 50px;
+      width: 50px;
+      margin: 11px;
+      background: grey;
+      border-radius: 50%;
+      display: inline-block;
+    }
+
+    .full{
+      background: greenyellow;
+    }
+    
+  </style>
+</html>
