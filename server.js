@@ -86,12 +86,14 @@ const startMatch = (matchId, sessionId, challengerId) => {
     players: {
       [sessionId]: {
         id: sessionId,
+        name: userSessions[sessionId].name,
         health: maxHP,
         isAttacking: player1StartsAttacking,
         moves: []
       },
       [challengerId]: {
         id: challengerId,
+        name: userSessions[challengerId].name,
         health: maxHP,
         isAttacking: !player1StartsAttacking,
         moves: []

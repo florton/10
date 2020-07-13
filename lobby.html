@@ -24,8 +24,8 @@
 
   <script>
     // global vars
-    // const serverEndpoint = " https://blooming-beyond-51878.herokuapp.com"
-    const serverEndpoint = " http://localhost:3000"
+    const serverEndpoint = " https://blooming-beyond-51878.herokuapp.com"
+    // const serverEndpoint = " http://localhost:3000"
     const heartbeatTime = 3000
 
     let userName = null
@@ -33,6 +33,40 @@
     let matchId = null
 
     const processedInvitiations = []
+    
+    // idle
+    const idleTimeoutSeconds = 60
+    let userIsIdle = false
+    let idleTime = 0
+
+    const updateIdleTime = () => {
+      if (!userIsIdle && idleTime > idleTimeoutSeconds){
+        userIsIdle = true
+      }
+      idleTime++
+      setTimeout(() => updateIdleTime(), 1000)
+    }
+
+    const resetIdleTime = () => {
+      idleTime = 0
+      if (userIsIdle) {
+        userIsIdle = false
+        heartBeat()
+      } 
+    }
+
+    const initIdleTime = () => {
+      window.onload = resetIdleTime
+      window.onmousemove = resetIdleTime
+      window.onmousedown = resetIdleTime  // catches touchscreen presses as well      
+      window.ontouchstart = resetIdleTime // catches touchscreen swipes as well 
+      window.onclick = resetIdleTime      // catches touchpad clicks as well
+      window.onkeypress = resetIdleTime
+
+      updateIdleTime()
+    }
+
+    initIdleTime()
 
     //util
 
@@ -128,7 +162,9 @@
         })
       }
       refreshUsers() 
-      setTimeout(heartBeat, heartbeatTime)   
+      if (!userIsIdle){
+        setTimeout(heartBeat, heartbeatTime) 
+      }   
     }
 
     // click handlers
