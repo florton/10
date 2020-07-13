@@ -77,12 +77,16 @@
       }
     }
 
-    const showLastTurn = (move, isPlayerMove) => {
-      if (isPlayerMove){
-        document.getElementById("player1-lt").innerText = move
-      } else {
-        document.getElementById("player2-lt").innerText = move
-      }
+    const showLastTurn = (playerMove, challengerMove) => {
+      document.getElementById("player1-lt").style.color = 'black'
+      document.getElementById("player1-lt").innerText = playerMove
+      document.getElementById("player2-lt").innerText = challengerMove
+    }
+
+    const showPlayerMove = (move) => {
+      document.getElementById("player1-lt").style.color = 'green'
+      document.getElementById("player1-lt").innerText = move
+      document.getElementById("player2-lt").innerText = ""
     }
 
     const updateHPOrbs = (p1hp, p2hp) => {
@@ -108,19 +112,14 @@
     }
 
     const processNewMatchState = (newMatchState) => {
+      const playerNewState = newMatchState.players[sessionId]
+      const challengerNewState = newMatchState.players[challengerId]
+
       const isNextTurn = matchState && newMatchState.moveIndex > matchState.moveIndex
       const sidesSwitched  = matchState && 
         newMatchState.players[sessionId].isAttacking !== matchState.players[sessionId].isAttacking
 
       if (!matchState || isNextTurn){
-        const playerNewState = newMatchState.players[sessionId]
-        const challengerNewState = newMatchState.players[challengerId]
-
-        if (isNextTurn){
-          showLastTurn(playerNewState.moves[playerNewState.moves.length -1], true)
-          showLastTurn(challengerNewState.moves[challengerNewState.moves.length -1], false)
-        }
-
         setAttackingMessage(playerNewState.isAttacking, sidesSwitched)
         updateHPOrbs(playerNewState.health, challengerNewState.health)
 
@@ -135,11 +134,10 @@
         }
       } 
 
-      // update opponent prev move if changed on server or reloaded
-      if (!matchState || 
-        matchState.players[challengerId].moves[newMatchState.moveIndex -1] !== newMatchState.players[challengerId].moves[newMatchState.moveIndex - 1]
-      ){
-        showLastTurn(newMatchState.players[challengerId].moves[newMatchState.moveIndex -1], false)
+      if (playerNewState.moves[newMatchState.moveIndex]){
+        showPlayerMove(playerNewState.moves[newMatchState.moveIndex])
+      }else if (newMatchState.moveIndex !== 0){
+        showLastTurn(playerNewState.moves[newMatchState.moveIndex -1], challengerNewState.moves[newMatchState.moveIndex -1])
       }
 
       if (newMatchState.winner !== null){
@@ -150,8 +148,7 @@
     }
 
     const afterMove = (move) => {
-      showLastTurn(move, true)
-      showLastTurn("", false)
+      showPlayerMove(move)
       showMessage("")
     }
 
