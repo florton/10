@@ -20,11 +20,11 @@
         <button class="button" id="back">
           Return to lobby
         </button>
-        <!-- <button class="button" id="replay">
-          replay
-        </button> -->
       </div>
       <div class="health" id="p1health"></div>
+      <button class="button" id="quit">
+        Quit Match
+      </button>
     </div>
     <div class="player" id="player2">
       <div class="lastTurn" id="player2-lt"></div>
@@ -34,8 +34,8 @@
 
   <script>
     // global vars
-    // const serverEndpoint = " https://blooming-beyond-51878.herokuapp.com"
-    const serverEndpoint = " http://localhost:3000"
+    const serverEndpoint = " https://blooming-beyond-51878.herokuapp.com"
+    // const serverEndpoint = " http://localhost:3000"
     const heartbeatTime = 1000
 
     const maxHp = 10
@@ -132,11 +132,11 @@
             showMessage("Enemy lost " + (challengerNewState.health - challengerPrevState.health)  + " hp!")
           }
         }
-
-        if (newMatchState.winner !== null){
-          endGame(newMatchState.winner)
-        }
       } 
+
+      if (newMatchState.winner !== null){
+        endGame(newMatchState.winner)
+      }
       
       matchState = newMatchState
     }
@@ -153,6 +153,16 @@
     
     // metwork methods
 
+    const quitMatch = () => {
+      if(window.confirm("Are you sure you want to forfeit the match?")){
+        window.fetch(serverEndpoint + "/quit_match/" + sessionId + "/" + matchId)
+        .then(response => response.json())
+        .then(data => {
+          window.location = "lobby"
+        })
+      }
+    }
+
     const makeMove = (move) => {
       window.fetch(serverEndpoint + "/make_move/" + sessionId + "/" + matchId + "/" + move)
         .then(response => response.json())
@@ -168,7 +178,7 @@
         .then(data => {
           if (data.matchState) {
             processNewMatchState(data.matchState)
-          } else{
+          } else {
             endGame(null)
           }
         })
@@ -190,6 +200,7 @@
       document.getElementById("button1").addEventListener ("click", () => makeMove(1))
       document.getElementById("button0").addEventListener ("click", () => makeMove(0))
       document.getElementById("back").addEventListener ("click", () => goBack())
+      document.getElementById("quit").addEventListener ("click", () => quitMatch())
 
       if (!sessionId){
         console.error("No active session")

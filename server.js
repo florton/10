@@ -289,6 +289,22 @@ app.get('/heartbeat_match/:sessionId/:matchId', (req, res) => {
   }
 })
 
+app.get('/quit_match/:sessionId/:matchId', (req, res) => {
+  const sessionId = req.params.sessionId
+  const matchId = req.params.matchId
+
+  const challengerId = Object.keys(ongoingMatches[matchId].players).filter((id) => id !== sessionId)[0]
+
+  userSessions[sessionId].matchId = null
+  userSessions[challengerId].matchId = null
+  ongoingMatches[matchId].winner = challengerId
+
+  res.json({
+    matchId: null,
+    matchState: ongoingMatches[matchId]
+  })
+})
+
 // APP
 
 const port = process.env.PORT || 3000
