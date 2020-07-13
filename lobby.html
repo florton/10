@@ -24,8 +24,8 @@
 
   <script>
     // global vars
-    const serverEndpoint = " https://blooming-beyond-51878.herokuapp.com"
-    // const serverEndpoint = " http://localhost:3000"
+    // const serverEndpoint = " https://blooming-beyond-51878.herokuapp.com"
+    const serverEndpoint = " http://localhost:3000"
     const heartbeatTime = 3000
 
     let userName = null
@@ -119,7 +119,7 @@
           } else if (data.invitations && data.invitations.length > 0){
             const unsansweredInvite = data.invitations.filter((invite) => !processedInvitiations.includes(invite.id))[0]
             if (unsansweredInvite){
-              if(window.confirm("Accecpt challenge from " + unsansweredInvite.challengerName + "?")){
+              if(window.confirm("Accept challenge from " + unsansweredInvite.challengerName + "?")){
               acceptChallenge(unsansweredInvite.challengerId)
             } 
             processedInvitiations.push(unsansweredInvite.id)
