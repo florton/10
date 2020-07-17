@@ -216,7 +216,14 @@
       window.fetch(serverEndpoint + "/make_move/" + sessionId + "/" + matchId + "/" + move)
         .then(response => response.json())
         .then(data => {
-          afterMove(move)
+          if (data.message){
+            afterMove(move)
+          } else {
+            setTimeout(() => makeMove(move), 1000)
+          }
+        }).error((e) => {
+          console.log(e)
+          setTimeout(() => makeMove(move), 1000)
         })
     }
  
